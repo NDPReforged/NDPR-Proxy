@@ -1,0 +1,72 @@
+//=======================================
+// NDPReforged 代理端客户端（Velocity + BungeeCord 双平台单 jar）
+// 构建: gradlew shadowJar → build/libs/ndpr-proxy-<version>.jar
+//=======================================
+
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+group = 'com.ndpreforged'
+version = '2.1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        name = 'papermc-snapshots'
+        url = 'https://repo.papermc.io/repository/maven-snapshots/'
+    }
+    maven {
+        name = 'sonatype-snapshots'
+        url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+}
+
+dependencies {
+    // Velocity API（运行时不打包，由 Velocity 提供）
+    compileOnly 'com.velocitypowered:velocity-api:3.3.0-SNAPSHOT'
+    // BungeeCord API（运行时不打包，由 BungeeCord 提供；1.20-R0.1 支持 MC 1.20.x）
+    compileOnly 'net.md-5:bungeecord-api:1.20-R0.1'
+    // Gson：Velocity/Bungee 运行时均已提供，仅编译期使用
+    compileOnly 'com.google.code.gson:gson:2.10.1'
+    // SQLite：唯一需要打包的运行时依赖
+    implementation('org.xerial:sqlite-jdbc:3.45.3.0') {
+        exclude group: 'org.slf4j'
+    }
+    // sqlite-jdbc 的 JDBC 类初始化需要 slf4j-api；relocate 后打包，
+    // 避免与 Velocity/Bungee 平台自带的 slf4j 冲突
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+shadowJar {
+    archiveBaseName = 'ndpr-proxy'
+    archiveClassifier = ''
+    archiveVersion = ''
+    mergeServiceFiles()
+    // slf4j relocate 到私有包，避免与平台自带 slf4j 冲突
+    relocate 'org.slf4j', 'com.ndpreforged.shadow.slf4j'
+}
+
+// 禁用未 shade 的普通 jar（sqlite-jdbc 等运行时依赖不在其中，不可直接使用）
+jar {
+    enabled = false
+}
+
+build {
+    dependsOn shadowJar
+}

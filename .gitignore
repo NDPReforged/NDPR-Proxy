@@ -1,0 +1,16 @@
+# Gradle
+build/
+.gradle/
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local data (never commit tokens / ban database)
+data/

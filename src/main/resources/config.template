@@ -1,0 +1,131 @@
+#=======================================
+# NDPR 配置文件
+# NDPR Config
+#=======================================
+#信息(INFO)
+#    - 官网：https://ndpreforged.com
+#    - Webside：https://ndpreforged.com
+#    - QQ群：232760327
+#    - QQGroup：232760327
+#=======================================
+# API 地址，通常不需要修改
+#API URL,usually does not need to be modified
+#=======================================
+api_url = "https://api.ndpreforged.com"
+
+#=======================================
+# 语言设置(Language)
+# 可选: zh_CN / en_us
+# Available: zh_CN / en_us
+#=======================================
+language = "zh_CN"
+
+#=======================================
+# Token(必填)
+# Token (required)
+# 带上你的UUID前往 https://ndpreforged.com 官网绑定邮箱后自动发放
+# Bring your UUID with you to go https://ndpreforged.com Automatically distribute after binding email on the official website
+# 如果需要启用封禁功能，必须配置此项
+# If the ban function needs to be enabled, this item must be configured
+#=======================================
+token = ""
+
+#=======================================
+# UUID
+# 首次启动时会自动获取，无需手动填写
+# It will automatically get when it is first started, no need to fill in manually
+#=======================================
+uuid = ""
+
+#=======================================
+# 服务器模式(必填)
+# Server type (required)
+# true = 正版服 (Online Server)
+# false = 离线服 (Offline Server)
+# 注意：必须填写此选项，否则插件不会正常加载
+# Note: This option must be filled in, otherwise the plugin will not load normally
+# 代理端提示：留空时插件使用代理自身的正版/离线模式
+#=======================================
+onlinemode = ""
+
+#=======================================
+# 机器验证（必填）
+# Check HWID (required)
+# true = 启用机器验证 (Enable HWID check)
+# false = 禁用机器验证 (Disable HWID check)
+# check_interval为检查间隔（天）默认值3
+#=======================================
+check_hwid = false
+check_interval = 3
+
+#=======================================
+# 日志文件路径（代理端兼容字段，无需填写）
+# Log file path (compat field on proxy, not used)
+#=======================================
+log_path = "server/logs/latest.log"
+
+#=======================================
+# 日志处理模式（代理端兼容字段，无需填写）
+# Logger mode (compat field on proxy, not used)
+# default = 默认模式
+# custom = 自定义日志处理
+#=======================================
+logger_mode = "default"
+
+#=======================================
+# 自定义日志格式（代理端兼容字段，无需填写）
+# Custom logger format (compat field on proxy, not used)
+#=======================================
+logger_format = "<[%n%]%name%>%s%<%message%>"
+
+#=======================================
+# 封禁列表更新间隔（秒）
+# Ban list update interval (seconds)
+# 默认900秒(15分钟)
+# Default 900 seconds = 15 minutes
+#=======================================
+download_interval = 900
+
+#=======================================
+# 封禁数据库缺失时的策略
+# Fail-closed policy when ban database is missing
+# false = 放行玩家并后台重试下载 (默认, 可用性优先)
+# true  = 踢出玩家直到数据库可用 (安全优先)
+#=======================================
+fail_closed = false
+
+#=======================================
+# HWID 设备验证超时（秒）
+# HWID verify timeout (seconds)
+# 玩家超时未完成网页验证将被请离服务器，与后端 session 过期时间一致
+# 默认60秒，最小30秒
+# Default 60 seconds, minimum 30 seconds
+#=======================================
+verify_timeout = 60
+#=======================================
+# 验证期间 freeze 提示间隔（秒）
+# Freeze notice interval during verification (seconds)
+# 代理端无法执行 tp/gamemode 等后端指令，该值仅保留兼容
+# Proxy cannot execute backend commands, kept for compatibility only
+# 默认1秒，最小1秒
+# Default 1 seconds, minimum 1 second
+#=======================================
+freeze_interval = 1
+
+#=======================================
+# 验证期间允许执行的命令（逗号分隔）
+# Commands allowed during verification (comma separated)
+# 验证完成前玩家只能执行这些命令，其余命令将被拦截
+# 默认放行登录类命令，适配 AuthMe 等登录插件
+#=======================================
+hwid_allowed_commands = "l,reg,login,register"
+
+#=======================================
+# 更新检查仓库（可选）
+# Update check repository (optional)
+# 格式: 作者/仓库名，留空禁用更新检查
+# Format: author/repo, empty disables update check
+#=======================================
+update_repo = "NDPReforged/NDPR-MCDR"
+#=======================================
+
