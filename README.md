@@ -70,7 +70,7 @@ ndpr-proxy.jar
 | 日志解析（default/custom 模式） | 移除 | 连接信息直接可得，无需日志 |
 | 命令 `!!ndpr` | 命令 `/ndpr`（别名 NDPR） | 代理命令需 `/` 前缀 |
 | 权限（等级 2） | 权限节点 `ndpr.admin` | 需 LuckPerms 等权限插件 |
-| 点击复制安装命令 | 点击复制下载链接 | 平台富文本事件 |
+| 更新检查 | GitHub Releases 版本对比 | 纯文本提示 |
 
 ### HWID 验证命令封锁说明
 
@@ -168,8 +168,8 @@ gradlew.bat shadowJar
 依赖：
 
 - `velocity-api 3.3.0-SNAPSHOT`（compileOnly，运行时不打包）
-- `bungeecord-api 1.20-R0.2-SNAPSHOT`（compileOnly）
-- `sqlite-jdbc 3.45.3.0`（shade 打包，exclude slf4j）
+- `bungeecord-api 1.20-R0.1`（compileOnly）
+- `sqlite-jdbc 3.45.3.0`（shade 打包，含 relocate 后的 slf4j-api）
 - Gson 由两个平台运行时提供
 
 ---
