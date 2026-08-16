@@ -10,7 +10,7 @@
 
 **NDPR 封禁系统代理端插件（双平台单 Jar）**
 
-[官网](https://ndpreforged.com) • [MCDR 版](https://github.com/NDPReforged/NDPR-MCDR) • [QQ群](https://qm.qq.com/cgi-bin/qm/qr?k=232760327)
+[官网](https://ndpreforged.com) • [QQ群](https://qm.qq.com/cgi-bin/qm/qr?k=232760327)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 ## 📖 简介
 
-本项目是 NDPR (NotDPR) 封禁系统在 **Velocity / BungeeCord 代理端** 的完整实现，由 MCDR 插件（`客户端/MCDR`）转写而来。一个 Jar 同时支持 Velocity 3.x 与 BungeeCord（MC 1.20.1+），实现云端封禁数据库跨服联防 —— 代理层统一拦截，**所有下游子服自动获得封禁防护，无需逐个安装客户端**。
+NDPR (NotDPR) 封禁系统在 **Velocity / BungeeCord 代理端** 的完整实现。一个 Jar 同时支持 Velocity 3.x 与 BungeeCord（MC 1.20.1+），实现云端封禁数据库跨服联防 —— 代理层统一拦截，**所有下游子服自动获得封禁防护，无需逐个安装客户端**。
 
 ### 主要功能
 
@@ -27,25 +27,25 @@
 - **智能检测**：玩家连入代理时立即检查封禁状态，命中直接断开连接
 - **封禁统计**：拦截后自动上报服务器（`/stats/a`）
 - **提交审核**：`/ndpr ban` 提交封禁审核（`/check/uploader`）
-- **机器验证**：HWID 设备验证（`/hwid/upd` 系列接口）
+- **机器验证**：HWID 设备验证（`/hwid/upd` 系列接口），验证期间命令封锁
 - **自动更新**：可配置封禁列表更新间隔与 GitHub 版本检查
 
 ---
 
-## 🏗 设计说明（与 MCDR 版对照）
+## 🏗 设计说明
 
 ### 架构：平台无关核心 + 双平台入口
 
 ```
 ndpr-proxy.jar
 ├── com.ndpreforged.proxy.common        # 平台无关核心（全部业务逻辑）
-│   ├── NdpPlugin.java                  # 核心门面（对应 MCDR on_load / on_player_joined）
+│   ├── NdpPlugin.java                  # 核心门面（生命周期 / 玩家事件 / 命令）
 │   ├── Config.java                     # 配置读写（兼容 TOML/YAML 键值）
-│   ├── Translations.java               # 翻译表（复用 MCDR 的 zh_CN/en_us）
+│   ├── Translations.java               # 内置翻译表（zh_CN / en_us）
 │   ├── ApiClient.java                  # HTTP 客户端（JDK HttpClient，零依赖）
 │   ├── BanDatabase.java                # SQLite 封禁库（sqlite-jdbc 打包）
 │   ├── JsonStore.java                  # player_info / hwid_temp 本地存储
-│   ├── HwidVerifyService.java          # HWID 验证会话
+│   ├── HwidVerifyService.java          # HWID 验证会话 + 命令门控
 │   ├── UpdateChecker.java              # GitHub 更新检查
 │   ├── Platform.java                   # 平台抽象接口
 │   └── NetUtil.java / RichMessage.java # 工具
@@ -55,26 +55,23 @@ ndpr-proxy.jar
 
 两个平台入口都实现 `Platform` 接口（玩家/命令源/调度器/消息/断开 的抽象），核心逻辑与平台 API 完全解耦。
 
-### 功能逐项对照
+### 关键设计
 
-| MCDR 版功能 | 代理版实现 | 说明 |
+| 功能 | 实现方式 | 说明 |
 |---|---|---|
-| 玩家加入封禁检查 | `PostLoginEvent` 中断开连接 | 代理层在进子服前拦截，所有子服生效 |
-| 踢出玩家 | `player.disconnect(Component)` | 代理 API 直接断开，无需执行后端命令 |
-| IP / IPv6 获取 | 连接地址 `InetSocketAddress` | **无需解析服务器日志**（架构优势） |
+| 玩家加入封禁检查 | `PostLoginEvent` 中断开连接 | 在进子服前拦截，所有子服生效 |
+| 踢出玩家 | `player.disconnect(Component)` | 代理 API 直接断开 |
+| IP / IPv6 获取 | 连接地址 `InetSocketAddress` | 无需解析服务器日志 |
 | UUID 获取 | `player.getUniqueId()` | 正版/离线由代理模式决定 |
 | 离线玩家信息（ban 命令） | 本地 `player_info.json` 缓存 | 玩家连入时自动保存 |
-| 封禁库下载/校验 | 相同（`/bans/download` → SQLite 校验 → 原子替换） | 表结构动态检测，兼容旧库 |
-| HWID 验证 | 相同会话流程（upd/check/has/cancel） | 见下方"命令封锁说明" |
-| freeze（tp/gamemode/effect/title） | **降级为命令封锁** | 验证期间仅放行登录命令，其余命令在代理层拦截 |
-| 日志解析（default/custom 模式） | 移除 | 连接信息直接可得，无需日志 |
-| 命令 `!!ndpr` | 命令 `/ndpr`（别名 NDPR） | 代理命令需 `/` 前缀 |
-| 权限（等级 2） | 权限节点 `ndpr.admin` | 需 LuckPerms 等权限插件 |
-| 更新检查 | GitHub Releases 版本对比 | 纯文本提示 |
+| 封禁库下载/校验 | `/bans/download` → SQLite 校验 → 原子替换 | 表结构动态检测，兼容旧库 |
+| HWID 验证 | 云端会话（upd/check/has/cancel） | 见下方"命令封锁说明" |
+| 验证期间冻结 | **降级为命令封锁** | 仅放行登录命令，其余命令在代理层拦截 |
+| 权限控制 | 权限节点 `ndpr.admin` | 需 LuckPerms 等权限插件 |
 
 ### HWID 验证命令封锁说明
 
-MCDR 版验证期间会冻结玩家（盲眼效果 + 冒险模式 + 定时传送回锚点），这些依赖后端能力，代理层无法执行。代理版将"冻结"降级为**命令封锁**：
+代理层无法执行后端指令（tp / gamemode / effect），因此验证期间的"冻结"降级为**命令封锁**：
 
 1. 验证期间玩家**无法执行任何命令**（Velocity 通过 `CommandExecuteEvent` 拒绝、BungeeCord 通过 `ChatEvent` 取消）
 2. **仅放行登录类命令**（默认 `l / reg / login / register`，可用配置 `hwid_allowed_commands` 调整，逗号分隔），适配 AuthMe 等登录插件；`/ndpr` 自身与拥有 `ndpr.admin` 权限的玩家不受限制
@@ -90,7 +87,7 @@ MCDR 版验证期间会冻结玩家（盲眼效果 + 冒险模式 + 定时传送
 
 ```
 plugins/ndpr/
-├── config.toml           # 配置（首次启动生成，字段与 MCDR 版一致）
+├── config.toml           # 配置（首次启动自动生成）
 └── data/
     ├── ban_database.db   # 封禁数据库（云端下载）
     ├── player_info.json  # 玩家信息缓存
@@ -136,7 +133,7 @@ fail_closed = false        # 数据库缺失时：false=放行，true=踢出
 verify_timeout = 60        # HWID 验证超时（秒）
 freeze_interval = 1        # 兼容字段（代理端不执行冻结指令）
 hwid_allowed_commands = "l,reg,login,register"  # 验证期间允许的命令（逗号分隔）
-update_repo = "NDPReforged/NDPR-MCDR"  # 更新检查仓库，留空禁用
+update_repo = "NDPReforged/NDPR-Proxy"  # 更新检查仓库，留空禁用
 # log_path / logger_mode / logger_format 为兼容字段，代理端不使用
 ```
 
@@ -161,7 +158,7 @@ update_repo = "NDPReforged/NDPR-MCDR"  # 更新检查仓库，留空禁用
 要求：JDK 17+、网络（拉取依赖）
 
 ```bash
-gradlew.bat shadowJar
+gradlew.bat build
 # 输出：build/libs/ndpr-proxy.jar
 ```
 
@@ -176,10 +173,9 @@ gradlew.bat shadowJar
 
 ## ⚠️ 注意事项
 
-- 命令由 `/` 前缀触发（代理层没有 `!!` 前缀命令），子服内 MCDR 插件的 `!!ndpr` 不受影响
+- 命令由 `/` 前缀触发（代理层没有 `!!` 前缀命令）
 - `ndpr.admin` 权限需配合 LuckPerms 等权限插件分配
 - 玩家在**代理层**被拦截时，不会进入任何子服
-- 封禁检查使用代理侧的 UUID/IP，与子服内 MCDR 版判定一致
 
 ---
 

@@ -2,7 +2,6 @@ package com.ndpreforged.proxy;
 
 /**
  * NDPReforged 代理端客户端全局常量
- * （对应 MCDR 版 mcdreforged.plugin.json / 模块常量）
  */
 public final class NdpConstants {
 
@@ -10,7 +9,7 @@ public final class NdpConstants {
     public static final String PLUGIN_NAME = "NDPReforged-Proxy";
     public static final String VERSION = "2.1.0";
     public static final String WEBSITE = "https://ndpreforged.com";
-    public static final String DEFAULT_UPDATE_REPO = "NDPReforged/NDPR-MCDR";
+    public static final String DEFAULT_UPDATE_REPO = "NDPReforged/NDPR-Proxy";
 
     public static final String DEFAULT_LANGUAGE = "zh_CN";
     public static final String DEFAULT_API_URL = "https://api.ndpreforged.com";

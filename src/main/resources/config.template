@@ -126,6 +126,6 @@ hwid_allowed_commands = "l,reg,login,register"
 # 格式: 作者/仓库名，留空禁用更新检查
 # Format: author/repo, empty disables update check
 #=======================================
-update_repo = "NDPReforged/NDPR-MCDR"
+update_repo = "NDPReforged/NDPR-Proxy"
 #=======================================
 
