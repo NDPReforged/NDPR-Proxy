@@ -63,49 +63,56 @@ public final class NdpPlugin {
         try {
             Config newConfig = Config.load(dataDir.resolve(NdpConstants.CONFIG_FILE),
                     getClass().getClassLoader());
-            newConfig.validate(translations, newConfig.effectiveLanguage(translations));
+            // 先赋值：即使校验失败（如 onlinemode 未填），api_url 等默认值依然可用，
+            // 保证首次启动也能自动获取 UUID
             this.config = newConfig;
-            this.lang = config.effectiveLanguage(translations);
+            this.lang = newConfig.effectiveLanguage(translations);
+            newConfig.validate(translations, this.lang);
             this.configBroken = false;
         } catch (Exception e) {
             this.configBroken = true;
             log.log(Level.SEVERE, "NDPR config load failed: " + e.getMessage(), e);
-            return;
         }
 
-        Path data = dataDir.resolve(NdpConstants.DATA_DIR);
-        try {
-            Files.createDirectories(data);
-        } catch (IOException e) {
-            log.log(Level.SEVERE, "Failed to create data dir", e);
-        }
-        this.banDb = new BanDatabase(data.resolve(NdpConstants.BAN_DB_FILE));
-        this.playerInfo = new JsonStore(data.resolve(NdpConstants.PLAYER_INFO_FILE));
-        this.hwidTemp = new JsonStore(data.resolve(NdpConstants.HWID_TEMP_FILE));
-        this.hwidService = new HwidVerifyService(platform, config, http, translations, hwidTemp, lang);
+        // 数据目录与服务初始化（即使配置校验失败也执行，UUID 获取不依赖 onlinemode）
+        if (config != null) {
+            Path data = dataDir.resolve(NdpConstants.DATA_DIR);
+            try {
+                Files.createDirectories(data);
+            } catch (IOException e) {
+                log.log(Level.SEVERE, "Failed to create data dir", e);
+            }
+            this.banDb = new BanDatabase(data.resolve(NdpConstants.BAN_DB_FILE));
+            this.playerInfo = new JsonStore(data.resolve(NdpConstants.PLAYER_INFO_FILE));
+            this.hwidTemp = new JsonStore(data.resolve(NdpConstants.HWID_TEMP_FILE));
+            this.hwidService = new HwidVerifyService(platform, config, http, translations, hwidTemp, lang);
 
-        String serverType = tr("ndpr.word.online");
-        if (!config.onlineMode()) {
-            serverType = tr("ndpr.word.offline");
+            if (!configBroken) {
+                String serverType = config.onlineMode() ? tr("ndpr.word.online") : tr("ndpr.word.offline");
+                log.info(tr("ndpr.log.server_type", "type", serverType));
+            }
+            log.info(tr("ndpr.log.uuid", "uuid",
+                    config.getString("uuid", "").isEmpty() ? tr("ndpr.word.unset") : config.getString("uuid", "")));
         }
-        log.info(tr("ndpr.log.server_type", "type", serverType));
-        log.info(tr("ndpr.log.uuid", "uuid",
-                config.getString("uuid", "").isEmpty() ? tr("ndpr.word.unset") : config.getString("uuid", "")));
 
         platform.runAsync(this::asyncInit);
     }
 
     private void asyncInit() {
-        if (configBroken) {
+        if (config == null) {
             return;
         }
-        // 1. UUID 获取
+        // 1. UUID 获取（独立于配置校验：首次启动 onlinemode 未填写时同样自动获取）
         if (config.getString("uuid", "").isEmpty()) {
             try {
                 obtainUuid();
             } catch (Exception e) {
                 log.warning(tr("ndpr.error.init_stage_failed", "stage", tr("ndpr.word.stage_uuid"), "error", e.getMessage()));
             }
+        }
+        if (configBroken) {
+            log.warning("NDPR 配置不完整（如 onlinemode 未填写），UUID 已自动获取；请填写 config.toml 后执行 /ndpr reload");
+            return;
         }
         // 2. 封禁库下载
         try {
@@ -674,8 +681,12 @@ public final class NdpPlugin {
     //-------------------------------------------------------------------------
 
     private void obtainUuid() throws Exception {
+        String apiUrl = config.getString("api_url", "");
+        if (apiUrl.isEmpty()) {
+            throw new IllegalStateException(tr("ndpr.error.api_url_missing"));
+        }
         log.info(tr("ndpr.log.getting_uuid"));
-        var resp = http.postJson(config.getString("api_url", "") + "/uuid/getuuid", null, new JsonObject(), 10);
+        var resp = http.postJson(apiUrl + "/uuid/getuuid", null, new JsonObject(), 10);
         if (resp.statusCode() != 200) {
             throw new IllegalStateException(tr("ndpr.error.get_uuid_http", "code", resp.statusCode(), "body", resp.body()));
         }
