@@ -29,6 +29,18 @@ public final class BanDatabase {
     private final Path path;
     private final Map<String, Set<String>> schemaCache = new HashMap<>();
 
+    static {
+        // Velocity/Bungee 的插件任务线程 TCCL 通常指向平台类加载器，
+        // DriverManager 的 ServiceLoader 自动注册找不到插件 jar 内的驱动
+        // （报 "No suitable driver found"）。显式加载驱动类触发其 static
+        // 块自注册，确保任何类加载器环境下 SQLite 驱动都可用。
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (Throwable t) {
+            throw new ExceptionInInitializerError("Failed to init sqlite-jdbc driver: " + t);
+        }
+    }
+
     public BanDatabase(Path path) {
         this.path = path;
     }
