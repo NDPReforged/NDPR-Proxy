@@ -133,7 +133,7 @@
   "ndpr.subtitle.verify": "Do not move, or you will be kicked",
   "ndpr.tell.verify_enabled": "This server has device verification enabled, please complete verification before playing",
   "ndpr.tell.click_verify": "Click the link to complete device verification: ",
-  "ndpr.tell.verify_freeze_notice": "You will be held in place during verification and kicked out on timeout",
+  "ndpr.tell.verify_freeze_notice": "You cannot use commands other than login/register during verification, and you will be kicked out on timeout",
   "ndpr.tell.verify_command_denied": "Only login commands (/login /register) are allowed before verification completes",
   "ndpr.tell.verify_done": "Device verification completed, enjoy the game",
   "ndpr.hover.open_verify_page": "Click to open the verification page"

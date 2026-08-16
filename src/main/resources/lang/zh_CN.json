@@ -133,7 +133,7 @@
   "ndpr.subtitle.verify": "请不要移动，否则将被踢出",
   "ndpr.tell.verify_enabled": "本服务器启用了设备验证,请完成验证后开始游戏",
   "ndpr.tell.click_verify": "请点击链接完成设备验证: ",
-  "ndpr.tell.verify_freeze_notice": "验证期间您将被固定在原地,超时将被请离服务器",
+  "ndpr.tell.verify_freeze_notice": "验证期间您无法使用除登录/注册外的其他指令,超时将被请离服务器",
   "ndpr.tell.verify_command_denied": "验证完成前仅允许执行登录命令(/login /register),请先完成设备验证",
   "ndpr.tell.verify_done": "设备验证完成,祝您游戏愉快",
   "ndpr.hover.open_verify_page": "点击打开验证页面"
