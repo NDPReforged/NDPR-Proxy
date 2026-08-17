@@ -31,6 +31,9 @@ public final class HwidVerifyService {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private volatile Set<String> allowedCommands;
 
+    /** 玩家进入后延迟发送认证链接的毫秒数（避免链接被欢迎消息冲走） */
+    private static final long VERIFY_MSG_DELAY_MS = 1000L;
+
     public HwidVerifyService(Platform platform, Config config, ApiClient http,
                              Translations translations, JsonStore hwidTemp, String lang) {
         this.platform = platform;
@@ -148,7 +151,17 @@ public final class HwidVerifyService {
         if (old != null) {
             old.cancelled = true;
         }
-        platform.runAsync(() -> runVerify(player, session, token));
+        platform.runAsync(() -> {
+            // 玩家进入 1 秒后再创建会话并发送认证链接，
+            // 避免链接被服务器欢迎信息/公告等聊天消息冲走
+            try {
+                Thread.sleep(VERIFY_MSG_DELAY_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            runVerify(player, session, token);
+        });
     }
 
     /** 玩家离开：取消进行中的验证 */
