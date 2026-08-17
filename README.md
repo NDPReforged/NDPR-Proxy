@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)
 ![Java](https://img.shields.io/badge/java-17+-green.svg)
 ![Velocity](https://img.shields.io/badge/Velocity-3.x-orange.svg)
 ![BungeeCord](https://img.shields.io/badge/BungeeCord-1.20.1+-orange.svg)

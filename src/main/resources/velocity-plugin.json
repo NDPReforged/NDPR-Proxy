@@ -1,7 +1,7 @@
 {
   "id": "ndpr",
   "name": "NDPReforged-Proxy",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "NDPReforged 代理端客户端（Velocity），云端封禁数据库跨服联防",
   "authors": ["EXE_autumnwind", "NDPReforged Team"],
   "main": "com.ndpreforged.proxy.velocity.NdpVelocity",

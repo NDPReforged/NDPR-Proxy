@@ -7,7 +7,7 @@ public final class NdpConstants {
 
     public static final String PLUGIN_ID = "ndpr";
     public static final String PLUGIN_NAME = "NDPReforged-Proxy";
-    public static final String VERSION = "2.2.0";
+    public static final String VERSION = "2.3.0";
     public static final String WEBSITE = "https://ndpreforged.com";
     public static final String DEFAULT_UPDATE_REPO = "NDPReforged/NDPR-Proxy";
 
