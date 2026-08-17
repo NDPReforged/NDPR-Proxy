@@ -34,6 +34,9 @@ public final class HwidVerifyService {
     /** 玩家进入后延迟发送认证链接的毫秒数（避免链接被欢迎消息冲走） */
     private static final long VERIFY_MSG_DELAY_MS = 1000L;
 
+    /** 验证未完成期间重新发送认证链接的间隔毫秒数 */
+    private static final long VERIFY_LINK_RESEND_MS = 5000L;
+
     public HwidVerifyService(Platform platform, Config config, ApiClient http,
                              Translations translations, JsonStore hwidTemp, String lang) {
         this.platform = platform;
@@ -196,12 +199,11 @@ public final class HwidVerifyService {
             session.expiresAt = expiresAt;
             String verifyUrl = str(created, "verify_url");
 
-            platform.sendMessage(player, "§e" + tr("ndpr.tell.click_verify"));
-            platform.sendMessage(player, RichMessage.clickable(verifyUrl,
-                    RichMessage.Action.OPEN_URL, verifyUrl,
-                    "§a" + tr("ndpr.hover.open_verify_page")));
+            // 首次发送认证链接（不带倒计时）
+            sendVerifyLink(player, verifyUrl);
             platform.sendMessage(player, "§7" + tr("ndpr.tell.verify_freeze_notice"));
             platform.sendTitle(player, tr("ndpr.title.verify"), tr("ndpr.subtitle.verify"));
+            long lastLinkSent = System.currentTimeMillis();
 
             while (!session.cancelled && System.currentTimeMillis() < expiresAt) {
                 try {
@@ -209,6 +211,13 @@ public final class HwidVerifyService {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
+                }
+                // 验证未完成期间每 5 秒重新发送一次认证链接 + 剩余时间倒计时（红字），
+                // 避免链接被聊天消息冲走
+                long nowMs = System.currentTimeMillis();
+                if (nowMs - lastLinkSent >= VERIFY_LINK_RESEND_MS) {
+                    lastLinkSent = nowMs;
+                    sendVerifyLinkWithCountdown(player, verifyUrl, expiresAt);
                 }
                 JsonObject status = checkStatus(session.sessionId, token);
                 if (status == null) {
@@ -254,6 +263,21 @@ public final class HwidVerifyService {
         } finally {
             sessions.remove(player.name(), session);
         }
+    }
+
+    /** 发送认证链接（首次进入时，不带倒计时） */
+    private void sendVerifyLink(Platform.ProxyPlayer player, String verifyUrl) {
+        platform.sendMessage(player, "§e" + tr("ndpr.tell.click_verify"));
+        platform.sendMessage(player, RichMessage.clickable(verifyUrl,
+                RichMessage.Action.OPEN_URL, verifyUrl,
+                "§a" + tr("ndpr.hover.open_verify_page")));
+    }
+
+    /** 重新发送认证链接 + 剩余时间倒计时（红字），验证期间每 5 秒调用一次 */
+    private void sendVerifyLinkWithCountdown(Platform.ProxyPlayer player, String verifyUrl, long expiresAt) {
+        sendVerifyLink(player, verifyUrl);
+        long remaining = Math.max(0, (expiresAt - System.currentTimeMillis() + 999) / 1000);
+        platform.sendMessage(player, "§c" + tr("ndpr.tell.verify_kick_countdown", "seconds", remaining));
     }
 
     private JsonObject createSession(Platform.ProxyPlayer player, String token) {
