@@ -1,5 +1,5 @@
 name: NDPReforged-Proxy
-version: 2.1.0
+version: 2.2.0
 main: com.ndpreforged.proxy.bungee.NdpBungee
 author: EXE_autumnwind
 description: NDPReforged 代理端客户端（BungeeCord），云端封禁数据库跨服联防
