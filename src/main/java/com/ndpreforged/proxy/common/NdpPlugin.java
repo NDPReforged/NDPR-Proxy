@@ -37,6 +37,7 @@ public final class NdpPlugin {
     private final Path dataDir;
     private final ApiClient http = new ApiClient();
     private final AtomicBoolean downloadInflight = new AtomicBoolean(false);
+    private final java.util.concurrent.locks.ReentrantLock downloadLock = new java.util.concurrent.locks.ReentrantLock();
 
     private Config config;
     private BanDatabase banDb;
@@ -60,6 +61,16 @@ public final class NdpPlugin {
 
     /** 初始化（配置校验失败时记录错误，可通过 /ndpr reload 修复后重载） */
     public synchronized void init() {
+        reloadConfig();
+        platform.runAsync(this::asyncInit);
+    }
+
+    /**
+     * 重新加载配置并重建服务（同步，不触发异步初始化）。
+     * 供 init 与 /ndpr reload 共用；reload 不得调用 init()，
+     * 否则 init 的异步初始化会与 reload 的下载并发。
+     */
+    public synchronized void reloadConfig() {
         try {
             Config newConfig = Config.load(dataDir.resolve(NdpConstants.CONFIG_FILE),
                     getClass().getClassLoader());
@@ -94,8 +105,6 @@ public final class NdpPlugin {
             log.info(tr("ndpr.log.uuid", "uuid",
                     config.getString("uuid", "").isEmpty() ? tr("ndpr.word.unset") : config.getString("uuid", "")));
         }
-
-        platform.runAsync(this::asyncInit);
     }
 
     private void asyncInit() {
@@ -330,12 +339,14 @@ public final class NdpPlugin {
         src.reply("§e" + tr("ndpr.reply.reloading"));
         platform.runAsync(() -> {
             try {
-                init();
+                // 只重载配置（不调用 init()，避免其异步初始化与本次下载并发写同一临时文件）
+                reloadConfig();
                 if (configBroken) {
                     src.reply("§c" + tr("ndpr.reply.reload_failed", "error", tr("ndpr.error.config.onlinemode_missing")));
                     return;
                 }
                 downloadBanDatabase(src);
+                restartDownloadTask();
                 src.reply("§a" + tr("ndpr.reply.reloaded"));
             } catch (Exception e) {
                 src.reply("§c" + tr("ndpr.reply.reload_failed", "error", e.getMessage()));
@@ -595,6 +606,17 @@ public final class NdpPlugin {
      * 流程：GET /bans/download 取文件 URL → 下载 SQLite 文件 → 校验结构 → 原子替换 → 上报完成。
      */
     private void downloadBanDatabase(Platform.NdpSource src) throws Exception {
+        // 串行化下载：init 异步初始化 / reload / 定时任务 / 玩家加入 可能并发触发，
+        // 并发写同一 .tmp 文件会导致 Files.move 失败（NoSuchFile）
+        downloadLock.lock();
+        try {
+            downloadBanDatabaseLocked(src);
+        } finally {
+            downloadLock.unlock();
+        }
+    }
+
+    private void downloadBanDatabaseLocked(Platform.NdpSource src) throws Exception {
         if (configBroken || config == null) {
             return;
         }
@@ -659,7 +681,12 @@ public final class NdpPlugin {
             throw new IllegalStateException(tr("ndpr.error.db_file_invalid", "error", e.getMessage()));
         }
 
-        Files.move(tmpPath, dbPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        try {
+            Files.move(tmpPath, dbPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (Exception e) {
+            Files.deleteIfExists(tmpPath);
+            throw e;
+        }
         banDb = new BanDatabase(dbPath);
 
         String detail = tr("ndpr.log.db_updated", "count", count);
